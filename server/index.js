@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
+const distPath = path.join(__dirname, '..', 'dist');
 
 app.use(cors());
 app.use(express.json());
@@ -52,6 +53,17 @@ app.post('/api/chat', async (req, res) => {
     const error = err.message || 'Failed to get response.';
     res.status(status).json({ error });
   }
+});
+
+app.use(express.static(distPath));
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) next(err);
+  });
 });
 
 app.listen(port, () => {

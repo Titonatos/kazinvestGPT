@@ -21,7 +21,15 @@ function App() {
         body: JSON.stringify({ message }),
       })
 
-      const data = await res.json()
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error(
+          'Сервер API недоступен. Запустите npm run dev (или npm run build && npm start).'
+        )
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Server error: ' + res.status)
