@@ -15,40 +15,46 @@ const distPath = path.join(__dirname, '..', 'dist');
 app.use(cors());
 app.use(express.json());
 
-const apiKey = process.env.OPENAI_API_KEY;
+const apiKey = process.env.OPENROUTER_API_KEY;
 if (!apiKey) {
-  console.warn('WARNING: OPENAI_API_KEY is not set.');
+  console.warn('WARNING: OPENROUTER_API_KEY is not set.');
 }
 
-const openai = apiKey ? new OpenAI({ apiKey }) : null;
+const openrouter = apiKey
+  ? new OpenAI({
+      apiKey,
+      baseURL: 'https://openrouter.ai/api/v1',
+    })
+  : null;
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { messages } = req.body;
 
     if (
-      !message ||
-      typeof message !== 'string' ||
-      message.trim().length === 0
+      !Array.isArray(messages) ||
+      messages.length === 0 ||
+      messages[messages.length - 1]?.role !== 'user' ||
+      !messages[messages.length - 1]?.content?.trim()
     ) {
-      return res.status(400).json({ error: 'Message is required.' });
+      return res.status(400).json({ error: 'Valid messages array with a user message is required.' });
     }
 
-    if (!openai) {
+    if (!openrouter) {
       return res
         .status(500)
-        .json({ error: 'OpenAI API key is not configured.' });
+        .json({ error: 'OpenRouter API key is not configured.' });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: message }],
+    const completion = await openrouter.chat.completions.create({
+      model: 'openai/gpt-oss-120b:free',
+      messages,
       max_tokens: 1024,
     });
 
     const response = completion.choices[0]?.message?.content || '';
     res.json({ response });
   } catch (err) {
-    console.error('OpenAI API error:', err);
+    console.error('OpenRouter API error:', err);
     const status = err.status || 500;
     const error = err.message || 'Failed to get response.';
     res.status(status).json({ error });

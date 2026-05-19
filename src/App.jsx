@@ -4,21 +4,22 @@ import ResponseDisplay from './components/ResponseDisplay'
 
 function App() {
   const [input, setInput] = useState('')
-  const [response, setResponse] = useState('')
+  const [messages, setMessages] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
 
   const handleSend = async (message) => {
+    const userMessage = { role: 'user', content: message }
+    setMessages(prev => [...prev, userMessage])
     setLoading(true)
     setError('')
-    setResponse('')
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ messages: [...messages, userMessage] }),
       })
 
       const text = await res.text()
@@ -35,7 +36,7 @@ function App() {
         throw new Error(data.error || 'Server error: ' + res.status)
       }
 
-      setResponse(data.response)
+      setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
       setInput('')
     } catch (err) {
       setError(err.message || 'Failed to connect.')
@@ -54,7 +55,7 @@ function App() {
 
       <main className="flex-1 flex flex-col max-w-2xl w-full mx-auto px-4 py-6 gap-6">
         <div className="flex-1 flex flex-col justify-end gap-4">
-          <ResponseDisplay loading={loading} error={error} response={response} />
+          <ResponseDisplay messages={messages} loading={loading} error={error} />
         </div>
 
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
